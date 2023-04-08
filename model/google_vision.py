@@ -1,85 +1,96 @@
 import torch
 import torch.nn as nn
-from PIL import Image
 from torchvision import transforms
-from os import listdir
-from torch.utils.data import Dataset, DataLoader
-from torch.nn.functional import one_hot
+from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader
 import numpy as np
-from torchvision.models import mobilenet_v3_small, MobileNet_V3_Small_Weights
+from os import listdir
+from os.path import exists
+from torch.nn.functional import one_hot
+from torchvision.models import ResNet50_Weights, resnet50 
 
+class denseHead(nn.Module):
 
-class food_classifier(nn.Module):
-
-    def __init__(self) -> None:
-        super(food_classifier, self).__init__()
-        self.net = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
-        self.net.eval()
+    def __init__(self, num_in, num_out) -> None:
+        super(denseHead, self).__init__()
         self.linear_stack = nn.Sequential(
-            nn.Linear(1000, 2048),
+            nn.Linear(num_in, 1024),
             nn.ReLU(),
-            nn.Linear(2048, 1024),
+            nn.Linear(1024, 512),
             nn.ReLU(),
-            nn.Linear(1024, 13),
-            nn.Softmax(1)
+            nn.Linear(512, num_out)
         )
 
     def forward(self, input):
-        x = self.net(input)
-        out = self.linear_stack(x)
-        return out
+        return self.linear_stack(input)
 
-class foodDataset(Dataset):
+transform_train = transforms.Compose([
+            transforms.Resize(224),
+            transforms.RandomCrop(224, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)),
+        ])
 
-    def __init__(self) -> None:
-        self.transform = transforms.Compose([
-    transforms.Resize(299),
-    transforms.CenterCrop(299),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-])
-        self.catagories = {"bean":0, "broccoli":1, "cabbage":2, "carrot":3, "cauliflower":4, "cucumber":5,
-                            "egg":6, "potato":7, "pumpkins":8, "radish":9, "rice":10, "tomato":11, "other":12}
-        self.images = []
-        self.image_labels = []
-        for c in listdir(f"./food_images/"):
-            for p in listdir(f"./food_images/{c}"):
-                self.images.append(self.transform(Image.open(f"./food_images/{c}/{p}")).unsqueeze(0))
-                self.image_labels.append(torch.tensor(self.catagories[c]).unsqueeze(0))
-        self.images = torch.concat(self.images)
-        self.image_labels = one_hot(torch.concat(self.image_labels), 13).float()
+transform_val = transforms.Compose([
+            transforms.Resize(224),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)),
+        ])
 
-    def __len__(self):
-        return len(self.images)
+if torch.cuda.is_available():  
+  dev = "cuda:0" 
+else:  
+  dev = "cpu"  
+device = torch.device(dev) 
 
-    def __getitem__(self, idx):
-        return self.images[idx], self.image_labels[idx]
+model = resnet50(weights=ResNet50_Weights.DEFAULT)
+for p in model.parameters():
+    p.requires_grad = False
 
-model = food_classifier()
-foodData = foodDataset()
-train_loader = DataLoader(foodData, batch_size=64, shuffle=True)
+num_classes = len(listdir("./../food_images/train/"))
+model.fc = denseHead(model.fc.in_features, num_classes)
+model = model.to(dev)
+
+path = "model.weights"
+
+if exists(path):
+    model.load_state_dict(torch.load(path))
+
 ce_loss = nn.CrossEntropyLoss()
 optim = torch.optim.Adam(lr=3e-4, params=model.parameters())
 
+foodData_train = ImageFolder("./../food_images/train/", transform=transform_train)
+train_loader = DataLoader(foodData_train, batch_size=64, shuffle=True)
+
+foodData_val = ImageFolder("./../food_images/val/", transform=transform_train)
+val_loader = DataLoader(foodData_val, batch_size=64, shuffle=True)
+
 for _ in range(100):
-    i = 0
     for X, y in train_loader:
-        print(i)
-        i += 1
+        X = X.to(dev)
+        y = one_hot(y, num_classes).float().to(dev)
         model.zero_grad()
-        out = model(X.view(-1, 3, 299, 299))
-        loss = ce_loss(out, y.view(-1, 13))
+        out = model(X.view(-1, 3, 224, 224))
+        loss = ce_loss(out, y.view(-1, num_classes))
         loss.backward()
         optim.step()
 
-        train_results = []
-        model.eval()
-        with torch.no_grad():
-            for X, y in train_loader:
-                out = model(X)
-                print((np.argmax(out.numpy(), axis=1) == np.argmax(y.numpy(), axis=1)).shape)
-                train_results.append(np.sum(np.argmax(out.numpy(), axis=1) == np.argmax(y.numpy(), axis=1)))
-                break
-        print(sum(train_results)/(len(train_results)*64))
-        model.train()
-        break
+    print("Check Accuracy")
+
+    model.eval()
+    model = model
+    '''total = 0
+    for X, y in train_loader:
+        out = model(X)
+        total += torch.sum(torch.argmax(out, dim=1) == y).item()
+    print(f"Training Accuracy: {total/len(foodData_train)}")'''
+
+    total = 0
+    for X, y in val_loader:
+        out = model(X.to(dev))
+        total += torch.sum(torch.argmax(out, dim=1) == y.to(dev)).cpu().item()
+    print(f"Validation Accuracy: {total/len(foodData_val)}")
+    model = model.to(dev)
+    model.train()
+    torch.save(model.state_dict(), path)

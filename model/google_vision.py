@@ -80,11 +80,11 @@ for _ in range(100):
 
     model.eval()
     model = model
-    '''total = 0
+    total = 0
     for X, y in train_loader:
-        out = model(X)
-        total += torch.sum(torch.argmax(out, dim=1) == y).item()
-    print(f"Training Accuracy: {total/len(foodData_train)}")'''
+        out = model(X.to(dev))
+        total += torch.sum(torch.argmax(out, dim=1) == y.to(dev)).cpu().item()
+    print(f"Training Accuracy: {total/len(foodData_train)}")
 
     total = 0
     for X, y in val_loader:

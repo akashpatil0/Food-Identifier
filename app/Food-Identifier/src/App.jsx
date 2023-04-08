@@ -5,7 +5,7 @@ import "./App.css";
 
 function App() {
   
-  const handelImageUpload = (event) => {
+  const handleImageUpload = (event) => {
     const file = event.target.files[0];
     // go do sum tings with the img here
   }
@@ -49,7 +49,7 @@ function App() {
         />
       </div>
 =======
-       <input type = "file" accept='.jpeg, .jpg' onChange={handelImageUpload}/>
+       <input type = "file" accept='.jpeg, .jpg' onChange={handleImageUpload}/>
       </div>
       
       {/* <button className='camera-btn' onClick={handleCameraPermission}>

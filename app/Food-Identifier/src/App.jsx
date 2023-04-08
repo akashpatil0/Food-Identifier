@@ -4,10 +4,47 @@ import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-  
+
+  const apiKey = 'AIzaSyD0Cqmy0qjI3AypAu20z-hNn05abRQZt40'
   const handelImageUpload = (event) => {
-    const file = event.target.files[0];
-    // go do sum tings with the img here
+    const file = event.target.files[0]
+    const imageUrl = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = async () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const base64Img = canvas.toDataURL('image/jpeg').replace(/^data:image\/(jpeg|png);base64,/, '')
+      const encodedImg = base64Img.toString('base64');
+      const data = {
+        requests: [
+          {
+            image: {
+              source: imageUrl,
+              content: encodedImg
+            },
+            features: [
+              {
+                type: 'LABEL_DETECTION'
+              }
+            ]
+          }
+        ]
+      }
+      const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      })
+      console.log(response)
+      const responseData = await response.json();
+      console.log(responseData.responses[0].labelAnnotations)
+    }
+    img.src = imageUrl
   }
 
   const handleCameraPermission = async () => {

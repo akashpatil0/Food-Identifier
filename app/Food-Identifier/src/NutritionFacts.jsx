@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "Axios";
 
-const NutritionFacts = () => {
+const NutritionFacts = ({ foodName }) => {
   return <div>NutritionFacts</div>;
 };
 

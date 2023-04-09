@@ -1,12 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
 import "./App.css";
 import NutritionFacts from "./NutritionFacts";
-import Webcam from "react-webcam";
+import Camera from "./Camera";
+import axios from "axios";
 
 function App() {
   const [img, setImg] = useState(null);
+  const [foodName, setFoodName] = useState(null);
+  const [NutritionFacts, setNutritionFacts] = useState(null);
   const webcamRef = useRef(null);
 
   const handleImageUpload = (event) => {
@@ -25,38 +26,40 @@ function App() {
     imageSmoothing: true,
   };
 
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await axios.post(
+        "https://trackapi.nutritionix.com/v2/natural/nutrients",
+        {
+          query: "chicken tender",
+        },
+        {
+          headers: {
+            "x-app-id": "181d71d9",
+            "x-app-key": "80c28984cab26c118e5636377ff5913b",
+            "x-remote-user-id": "0",
+          },
+        }
+      );
+      console.log(data);
+    };
+
+    // call the function
+    fetchData();
+    console.log(NutritionFacts);
+  }, []);
+
   return (
     <div className="App">
       <h1>give us a pic</h1>
-
-      <div className="upload-btn">
-        <input
-          type="file"
-          accept=".jpeg, .jpg"
-          onChange={(event) => {
-            const file = event.target.files[0];
-          }}
-        />
-      </div>
       <input type="file" accept=".jpeg, .jpg" onChange={handleImageUpload} />
-      <NutritionFacts />
-      <div className="Container">
-        {img === null ? (
-          <>
-            <Webcam
-              ref={webcamRef}
-              screenshotFormat="image/jpeg"
-              videoConstraints={videoConstraints}
-            />
-            <button onClick={capture}>Capture photo</button>
-          </>
-        ) : (
-          <>
-            <img src={img} alt="screenshot" />
-            <button onClick={() => setImg(null)}>Retake</button>
-          </>
-        )}
-      </div>
+      {/* {<NutritionFacts />} */}
+      <Camera
+        webcamRef={webcamRef}
+        capture={capture}
+        img={img}
+        setImg={setImg}
+      />
     </div>
   );
 }

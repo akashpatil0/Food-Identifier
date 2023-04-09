@@ -1,34 +1,31 @@
-import { useCallback, useRef, useState } from "react";
+import React from "react";
 import Webcam from "react-webcam";
 
-const videoConstraints = {
-  width: 640,
-  height: 480,
-  facingMode: "user",
-};
-
-const Camera = () => {
-  const webcamRef = useRef < any > null;
-  const [imgSrc, setImgSrc] = useState < any > null;
-
-  const capture = useCallback(() => {
-    const imageSrc = webcamRef.current.getScreenshot();
-    setImgSrc(imageSrc);
-  }, [webcamRef, setImgSrc]);
+const Camera = ({ img, setImg, webcamRef, capture }) => {
+  const videoConstraints = {
+    width: 720,
+    height: 480,
+    imageSmoothing: true,
+  };
 
   return (
-    <>
-      <Webcam
-        audio={false}
-        ref={webcamRef}
-        screenshotFormat="image/jpeg"
-        videoConstraints={videoConstraints}
-        minScreenshotWidth={180}
-        minScreenshotHeight={180}
-      />
-      <button onClick={capture}>Capture Photo</button>
-      {imgSrc && <img src={imgSrc} alt="img" />}
-    </>
+    <div className="Container">
+      {img === null ? (
+        <>
+          <Webcam
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            videoConstraints={videoConstraints}
+          />
+          <button onClick={capture}>Capture photo</button>
+        </>
+      ) : (
+        <>
+          <img src={img} alt="screenshot" />
+          <button onClick={() => setImg(null)}>Retake</button>
+        </>
+      )}
+    </div>
   );
 };
 

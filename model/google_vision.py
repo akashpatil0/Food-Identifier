@@ -3,7 +3,6 @@ import torch.nn as nn
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
-import numpy as np
 from os import listdir
 from os.path import exists
 from torch.nn.functional import one_hot

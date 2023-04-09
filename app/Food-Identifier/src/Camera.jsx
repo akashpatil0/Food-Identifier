@@ -19,7 +19,6 @@ const Camera = () => {
     const reader = new FileReader();
     reader.onload = () => {
       const byteArray = new Uint8Array(reader.result);
-      console.log("here2");
       console.log(byteArray);
     };
     reader.readAsArrayBuffer(fetch(imageSrc).then((res) => res.blob()));

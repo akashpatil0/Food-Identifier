@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import axios from "axios";
 
 import "./App.css";
 import NutritionFacts from "./NutritionFacts";
@@ -6,7 +7,24 @@ import Webcam from "react-webcam";
 
 function App() {
   const [img, setImg] = useState(null);
+  const [imgArray, setImgArray] = useState(null);
   const webcamRef = useRef(null);
+
+  useEffect(()=>{
+    const fetch = async ()=>{
+        const data = await axios.post(
+          "http://129.2.192.66:8080/prediction",
+          {
+            image: [1,2,3]
+          }
+        );
+        console.log(data);
+      }   
+    
+    
+
+    fetch(imgArray);
+  },[imgArray])
 
   const getArray = (file) => {
     const reader = new FileReader()
@@ -14,6 +32,7 @@ function App() {
     reader.onload = () => {
       const byteArray = new Uint8Array(reader.result)
       console.log(byteArray)
+      setImgArray(byteArray);
     }
     reader.readAsArrayBuffer(file) 
   }
@@ -54,7 +73,7 @@ function App() {
               screenshotFormat="image/jpeg"
               videoConstraints={videoConstraints}
             />
-            <button onClick={capture}>Capture photo</button>
+            <button onClick={capture}>Capture Piture</button>
           </>
         ) : (
           <>

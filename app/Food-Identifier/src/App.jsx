@@ -1,36 +1,28 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
 import "./App.css";
+import NutritionFacts from "./NutritionFacts";
+import Webcam from "react-webcam";
 
 function App() {
+  const [img, setImg] = useState(null);
+  const webcamRef = useRef(null);
+
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     // go do sum tings with the img here
   };
 
-  const handleCameraPermission = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      setMediaStream(stream);
-    } catch (error) {
-      console.error("camera function error here: ", error);
-    }
-  };
+  const capture = useCallback(() => {
+    const imageSrc = webcamRef.current.getScreenshot();
+    setImg(imageSrc);
+  }, [webcamRef]);
 
-  const handleCapture = () => {
-    const video = document.createElement("video");
-    video.srcObject = MediaStream;
-    video.play();
-
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const imageUrl = canvas.toDataURL("image/jpeg");
+  const videoConstraints = {
+    width: 720,
+    height: 480,
+    imageSmoothing: true,
   };
 
   return (
@@ -47,14 +39,24 @@ function App() {
         />
       </div>
       <input type="file" accept=".jpeg, .jpg" onChange={handleImageUpload} />
-
-      {/* <button className='camera-btn' onClick={handleCameraPermission}>
-        Use Camera
-      </button>
-
-      <button className='camera-btn' onClick={handleCapture}>
-        Take Pic
-      </button>  */}
+      <NutritionFacts />
+      <div className="Container">
+        {img === null ? (
+          <>
+            <Webcam
+              ref={webcamRef}
+              screenshotFormat="image/jpeg"
+              videoConstraints={videoConstraints}
+            />
+            <button onClick={capture}>Capture photo</button>
+          </>
+        ) : (
+          <>
+            <img src={img} alt="screenshot" />
+            <button onClick={() => setImg(null)}>Retake</button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import "./App.css";
 import NutritionFacts from "./NutritionFacts";
 import Camera from "./Camera";
-import axios from "axios";
+import axios from "Axios";
 
 function App() {
   const [img, setImg] = useState(null);
@@ -10,14 +10,25 @@ function App() {
   const [NutritionFacts, setNutritionFacts] = useState(null);
   const webcamRef = useRef(null);
 
+  const getArray = (file) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const byteArray = new Uint8Array(reader.result);
+      console.log(byteArray);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
-    // go do sum tings with the img here
+    getArray(file);
   };
 
   const capture = useCallback(() => {
     const imageSrc = webcamRef.current.getScreenshot();
     setImg(imageSrc);
+    console.log(imageSrc);
   }, [webcamRef]);
 
   const videoConstraints = {

@@ -5,9 +5,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from torchvision import transforms 
 import torch
-import numpy as np
 import torch.nn as nn
 from torchvision.models import ResNet50_Weights, resnet50
+import io
+from PIL import Image
+import base64
 
 class denseHead(nn.Module):
 
@@ -32,6 +34,7 @@ model.eval()
 transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Resize(224, antialias=True),
+        transforms.CenterCrop(224),
         transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)),
     ])
 
@@ -49,7 +52,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -58,9 +61,7 @@ app.add_middleware(
 # Loading up the trained model
 # Defining the model input types
 class Candidate(BaseModel):
-    height: int
-    width: int
-    image: list
+    image: str
 
 # Setting up the home route
 @app.get("/")
@@ -70,22 +71,17 @@ def read_root():
 # Setting up the prediction route
 @app.post("/prediction/")
 
-
-
 async def get_predict(data: Candidate):
-
-
-    im = np.array(data.image).reshape(3, data.height, data.width)
-    tensor = transform(im).float().view(-1, 3, 224, 224)
-    prediction = torch.argmax(model(tensor), dim=1).item()
+    image = Image.open(io.BytesIO(base64.b64decode(data.image.split(",")[1])))
+    tensor = transform(image).float()
+    tensor_view = tensor.view(-1, 3, 224, 224)
+    pred = model(tensor_view)
+    prediction = torch.argmax(pred, dim=1).item()
 
     return {
-
     "data": {
-
     'prediction': list(prediction_mapping.keys())[list(prediction_mapping.values()).index(prediction)],
             }
-
     }
 
 # Configuring the server host and port
